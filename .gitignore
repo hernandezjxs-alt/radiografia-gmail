@@ -1,0 +1,7 @@
+node_modules/
+*.log
+cache_*
+datos_gmail.js
+client_secret*.json
+token*.json
+notificar.json
