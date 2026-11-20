@@ -1,7 +1,10 @@
-node_modules/
-*.log
+# Nada de datos ni credenciales
+dashboard-de-gmail-para-borrar-correos.json
+*.db
 cache_*
 datos_gmail.js
-client_secret*.json
 token*.json
+client_secret*.json
 notificar.json
+*.log
+node_modules/

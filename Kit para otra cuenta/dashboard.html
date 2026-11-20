@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard de Gmail</title>
+<script src="chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111821; --panel2:#151e29; --borde:#1f2b3a;
+    --texto:#e6edf6; --suave:#8fa3b8; --tenue:#5d7189;
+    --menta:#5eead4; --cielo:#38bdf8; --violeta:#a78bfa; --ambar:#fbbf24;
+    --rosa:#f472b6; --rojo:#fb7185; --verde:#4ade80;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(167,139,250,.10), transparent 55%),
+      var(--bg);
+    color:var(--texto);
+    font:14px/1.5 "Segoe UI",Roboto,-apple-system,system-ui,sans-serif;
+    min-height:100vh;
+  }
+  .envoltura{max-width:1460px;margin:0 auto;padding:22px 26px 60px}
+
+  /* ---------- cabecera ---------- */
+  header.topo{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+  .marca{display:flex;align-items:center;gap:13px}
+  .logo{
+    width:44px;height:44px;border-radius:13px;flex:0 0 auto;
+    background:linear-gradient(140deg,#38bdf8,#a78bfa 60%,#f472b6);
+    display:grid;place-items:center;font-size:21px;
+    box-shadow:0 8px 26px rgba(56,189,248,.28);
+  }
+  h1{font-size:22px;margin:0;letter-spacing:-.2px}
+  .sub{color:var(--suave);font-size:12.5px;margin-top:2px}
+  .chip{display:inline-block;padding:2px 9px;border-radius:999px;background:rgba(94,234,212,.10);
+        color:var(--menta);border:1px solid rgba(94,234,212,.25);font-size:11.5px;font-weight:600}
+
+  /* ---------- filtros ---------- */
+  .filtros{
+    background:linear-gradient(180deg,rgba(21,30,41,.96),rgba(17,24,33,.96));
+    border:1px solid var(--borde);border-radius:16px;padding:13px 15px;
+    display:grid;grid-template-columns:2fr repeat(7,minmax(0,1fr)) auto;gap:9px;align-items:end;
+    position:sticky;top:10px;z-index:40;backdrop-filter:blur(10px);
+    box-shadow:0 12px 30px rgba(0,0,0,.35);
+  }
+  .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .campo label{font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--tenue);font-weight:700}
+  input[type=search],select{
+    width:100%;background:#0c1219;color:var(--texto);border:1px solid var(--borde);
+    border-radius:9px;padding:8px 10px;font:13px "Segoe UI",sans-serif;outline:none;min-width:0;
+  }
+  input[type=search]:focus,select:focus{border-color:rgba(56,189,248,.6);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--tenue) 50%),linear-gradient(135deg,var(--tenue) 50%,transparent 50%);
+         background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:28px}
+  .toggle{
+    display:flex;align-items:center;gap:7px;background:#0c1219;border:1px solid var(--borde);
+    border-radius:9px;padding:8px 10px;cursor:pointer;font-size:12.5px;color:var(--suave);user-select:none;white-space:nowrap;
+  }
+  .toggle input{accent-color:#38bdf8;margin:0;width:14px;height:14px}
+  .toggle.activo{color:var(--texto);border-color:rgba(56,189,248,.55);background:rgba(56,189,248,.08)}
+  .btn{
+    background:rgba(255,255,255,.04);color:var(--texto);border:1px solid var(--borde);
+    border-radius:9px;padding:8px 14px;font:600 12.5px "Segoe UI",sans-serif;cursor:pointer;
+    transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{background:rgba(255,255,255,.09);border-color:#2c3d52}
+  .btn.pri{background:linear-gradient(135deg,#0ea5e9,#6366f1);border-color:transparent;color:#fff}
+  .btn.pri:hover{filter:brightness(1.12)}
+  .btn.mini{padding:4px 9px;font-size:11.5px;border-radius:7px}
+
+  /* ---------- kpis ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:16px 0 6px}
+  .kpi{
+    background:linear-gradient(170deg,rgba(24,34,47,.95),rgba(14,20,28,.95));
+    border:1px solid var(--borde);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden;
+  }
+  .kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--c,#38bdf8)}
+  .kpi .et{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--tenue);font-weight:700}
+  .kpi .val{font-size:27px;font-weight:700;letter-spacing:-.8px;margin:5px 0 2px;font-variant-numeric:tabular-nums}
+  .kpi .pie{font-size:11.5px;color:var(--suave)}
+  .kpi .pie b{color:var(--texto);font-weight:600}
+
+  /* ---------- pestañas ---------- */
+  nav.tabs{display:flex;gap:4px;margin:20px 0 16px;border-bottom:1px solid var(--borde);flex-wrap:wrap}
+  nav.tabs button{
+    background:none;border:0;color:var(--suave);font:600 13px "Segoe UI",sans-serif;
+    padding:10px 15px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;
+  }
+  nav.tabs button:hover{color:var(--texto)}
+  nav.tabs button.activa{color:var(--menta);border-bottom-color:var(--menta)}
+
+  .panel{display:none}
+  .panel.activa{display:block;animation:entra .25s ease}
+  @keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .tarjeta{background:linear-gradient(170deg,rgba(23,32,44,.92),rgba(14,20,27,.92));
+          border:1px solid var(--borde);border-radius:16px;padding:16px 18px}
+  .tarjeta h3{margin:0 0 3px;font-size:13.5px;letter-spacing:.1px}
+  .tarjeta .nota{color:var(--tenue);font-size:11.5px;margin-bottom:12px}
+  .graficos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .graficos.tres{grid-template-columns:1fr 1fr 1fr}
+  .caja{position:relative;height:280px}
+  .caja.alta{height:330px}
+  .caja.baja{height:220px}
+
+  /* mapa de calor dia/hora */
+  .mapa{display:grid;grid-template-columns:38px repeat(24,1fr);gap:3px;font-size:10.5px}
+  .mapa .et{color:var(--tenue);display:flex;align-items:center;justify-content:flex-end;padding-right:4px;font-weight:600}
+  .mapa .hd{color:var(--tenue);text-align:center;font-variant-numeric:tabular-nums}
+  .mapa .celda{height:22px;border-radius:4px;background:rgba(148,163,184,.05);transition:.12s}
+  .mapa .celda:hover{outline:1px solid rgba(94,234,212,.7);transform:scale(1.06)}
+  .escala{display:flex;align-items:center;gap:7px;margin-top:12px;color:var(--tenue);font-size:10.5px}
+  .escala .barra{flex:1;height:6px;border-radius:4px;
+    background:linear-gradient(90deg,rgba(56,189,248,.10),rgba(56,189,248,.45),rgba(94,234,212,.95))}
+
+  /* ---------- resumen narrativo ---------- */
+  .hallazgos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .hallazgos ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+  .hallazgos li{display:flex;gap:11px;font-size:13px;line-height:1.55;color:#c8d6e5}
+  .hallazgos li .ic{
+    flex:0 0 24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:13px;
+    background:rgba(56,189,248,.12);color:var(--cielo);
+  }
+  .hallazgos li b{color:#fff;font-weight:600}
+  .hallazgos li .destaca{color:var(--menta);font-weight:700}
+
+  /* ---------- tablas ---------- */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{
+    text-align:left;color:var(--tenue);font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;
+    padding:8px 9px;border-bottom:1px solid var(--borde);font-weight:700;cursor:pointer;white-space:nowrap;
+  }
+  thead th:hover{color:var(--texto)}
+  tbody td{padding:8px 9px;border-bottom:1px solid rgba(31,43,58,.55);vertical-align:middle}
+  tbody tr:hover{background:rgba(56,189,248,.05)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .barrin{height:4px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;min-width:60px}
+  .barrin i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#a78bfa);border-radius:3px}
+  .nombre{max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .correo{color:var(--tenue);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:290px}
+  .pill{display:inline-block;padding:1px 7px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.2px}
+  .pill.p0{background:rgba(56,189,248,.14);color:#7dd3fc}
+  .pill.p1{background:rgba(244,114,182,.14);color:#f9a8d4}
+  .pill.p2{background:rgba(251,191,36,.14);color:#fcd34d}
+  .pill.p3{background:rgba(94,234,212,.14);color:#5eead4}
+  .pill.p4{background:rgba(167,139,250,.14);color:#c4b5fd}
+  .pill.p5{background:rgba(148,163,184,.14);color:#cbd5e1}
+  .tabla-scroll{max-height:560px;overflow:auto;border-radius:10px}
+  .tabla-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .tabla-scroll::-webkit-scrollbar-thumb{background:#22303f;border-radius:9px}
+
+  /* ---------- reglas ---------- */
+  .reglas{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .regla{border:1px solid var(--borde);border-radius:15px;padding:16px 18px;background:linear-gradient(165deg,rgba(24,34,47,.9),rgba(13,19,26,.9));position:relative}
+  .regla:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--c,#38bdf8)}
+  .regla h4{margin:0 0 4px;font-size:13.5px;padding-left:9px}
+  .regla p{margin:0 0 11px;color:var(--suave);font-size:12px;padding-left:9px}
+  .regla .datos{display:flex;gap:20px;padding-left:9px;margin-bottom:11px}
+  .regla .datos div span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--tenue);font-weight:700}
+  .regla .datos div b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .regla code{
+    display:block;background:#080c11;border:1px solid var(--borde);border-radius:8px;padding:8px 10px;
+    font:12px Consolas,"Cascadia Mono",monospace;color:#9ae6d8;margin:0 0 10px 9px;overflow-x:auto;white-space:nowrap;
+  }
+  .regla .acciones{display:flex;gap:7px;padding-left:9px;flex-wrap:wrap}
+
+  .aviso{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:12px;
+        padding:12px 15px;color:#fde68a;font-size:12.5px;margin-bottom:14px}
+  .vacio{color:var(--tenue);font-size:13px;padding:24px 0;text-align:center}
+
+  /* ---------- onboarding ---------- */
+  #sinDatos{max-width:720px;margin:12vh auto;padding:34px;text-align:center}
+  #sinDatos h2{margin:0 0 10px;font-size:22px}
+  #sinDatos p{color:var(--suave);margin:0 0 18px}
+  #sinDatos code{background:#0b1118;border:1px solid var(--borde);border-radius:7px;padding:3px 8px;color:#9ae6d8;font-family:Consolas,monospace}
+  .oculto{display:none!important}
+
+  /* bandejas de Gmail */
+  .bandejas{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+  .bandeja{background:linear-gradient(170deg,rgba(24,34,47,.95),rgba(14,20,28,.95));border:1px solid var(--borde);
+    border-radius:14px;padding:14px 15px;cursor:pointer;position:relative;overflow:hidden;transition:.15s}
+  .bandeja:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--c)}
+  .bandeja:hover{border-color:#2c3d52;transform:translateY(-1px)}
+  .bandeja.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset}
+  .bandeja .et{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--tenue);font-weight:700}
+  .bandeja .val{font-size:26px;font-weight:700;letter-spacing:-.8px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+  .bandeja .pie{font-size:11.5px;color:var(--suave);line-height:1.5}
+  .bandeja .pie b{color:var(--texto);font-weight:600}
+  @media (max-width:1250px){ .bandejas{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:700px){ .bandejas{grid-template-columns:1fr 1fr} }
+
+  @media (max-width:1250px){
+    .filtros{grid-template-columns:1fr 1fr 1fr;position:static}
+    .kpis{grid-template-columns:repeat(3,1fr)}
+    .graficos,.graficos.tres,.reglas,.hallazgos{grid-template-columns:1fr}
+  }
+  @media (max-width:700px){
+    .envoltura{padding:16px 14px 40px}
+    .filtros,.kpis{grid-template-columns:1fr 1fr}
+    .kpi .val{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<!-- pantalla si no hay datos -->
+<div id="sinDatos" class="oculto">
+  <div class="logo" style="margin:0 auto 18px">✉</div>
+  <h2>Todavía no hay datos</h2>
+  <p>Ejecuta el analizador una vez y este dashboard se llenará solo.</p>
+  <p><code>python analizar_gmail.py</code></p>
+  <p style="font-size:12px">La primera vez pedirá autorizar el acceso a Gmail (solo metadatos: remitente, fecha, asunto, etiquetas y tamaño).</p>
+</div>
+
+<div class="envoltura" id="app">
+
+  <header class="topo">
+    <div class="marca">
+      <div class="logo">✉</div>
+      <div>
+        <h1>Radiografía de mi Gmail</h1>
+        <div class="sub">
+          <span id="rangoFechas">—</span> ·
+          <span id="cuenta">—</span> ·
+          actualizado <span id="generado">—</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="chip" id="chipFiltro">sin filtros</span>
+      <button class="btn" id="btnCsv">⬇ Exportar CSV</button>
+    </div>
+  </header>
+
+  <!-- filtros -->
+  <div class="filtros">
+    <div class="campo">
+      <label for="fTexto">Buscar remitente o asunto</label>
+      <input type="search" id="fTexto" placeholder="ej: banco, factura, amazon…">
+    </div>
+    <div class="campo">
+      <label for="fDominio">Dominio</label>
+      <select id="fDominio"><option value="">Todos</option></select>
+    </div>
+    <div class="campo">
+      <label for="fCategoria">Categoría</label>
+      <select id="fCategoria">
+        <option value="">Todas</option>
+        <option value="0">Principal</option>
+        <option value="1">Social</option>
+        <option value="2">Promociones</option>
+        <option value="3">Notificaciones</option>
+        <option value="4">Foros</option>
+        <option value="5">Otros</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="fDesde">Año desde</label>
+      <select id="fDesde"></select>
+    </div>
+    <div class="campo">
+      <label for="fHasta">Año hasta</label>
+      <select id="fHasta"></select>
+    </div>
+    <div class="campo">
+      <label for="fMes">Mes</label>
+      <select id="fMes">
+        <option value="">Todos</option>
+        <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+        <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+        <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="fPeso">Tamaño</label>
+      <select id="fPeso">
+        <option value="0">Cualquiera</option>
+        <option value="1">Más de 1 MB</option>
+        <option value="5">Más de 5 MB</option>
+        <option value="10">Más de 10 MB</option>
+        <option value="20">Más de 20 MB</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="fEtiqueta">Etiqueta</label>
+      <select id="fEtiqueta"><option value="">Todas</option></select>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <label class="toggle" id="tgNoleido"><input type="checkbox" id="fNoleido">Sin leer</label>
+      <label class="toggle" id="tgBoletin"><input type="checkbox" id="fBoletin">Boletín</label>
+      <button class="btn" id="btnLimpiar" title="Quitar filtros">✕</button>
+    </div>
+  </div>
+
+  <!-- kpis -->
+  <section class="kpis" id="kpis"></section>
+
+  <!-- pestanas -->
+  <nav class="tabs">
+    <button data-tab="resumen" class="activa">Resumen</button>
+    <button data-tab="bandejas">Bandejas de Gmail</button>
+    <button data-tab="remitentes">Remitentes</button>
+    <button data-tab="tendencias">Tendencias</button>
+    <button data-tab="etiquetas">Etiquetas</button>
+    <button data-tab="limpieza">Plan de limpieza</button>
+  </nav>
+
+  <!-- RESUMEN -->
+  <section class="panel activa" id="p-resumen">
+    <div class="hallazgos">
+      <div class="tarjeta">
+        <h3>Lo que dicen tus números</h3>
+        <div class="nota">Generado automáticamente sobre la selección actual</div>
+        <ul id="hallazgos"></ul>
+      </div>
+      <div class="tarjeta">
+        <h3>Oportunidad de limpieza</h3>
+        <div class="nota">Espacio recuperable por tipo de correo</div>
+        <div class="caja baja"><canvas id="gOportunidad"></canvas></div>
+      </div>
+    </div>
+    <div class="graficos">
+      <div class="tarjeta">
+        <h3>Correos por año</h3>
+        <div class="nota">Volumen histórico del buzón</div>
+        <div class="caja"><canvas id="gAnio"></canvas></div>
+      </div>
+      <div class="tarjeta">
+        <h3>Reparto por categoría de Gmail</h3>
+        <div class="nota">Promociones, social, actualizaciones…</div>
+        <div class="caja"><canvas id="gCategoria"></canvas></div>
+      </div>
+    </div>
+    <div class="graficos tres" style="margin-top:14px">
+      <div class="tarjeta"><h3>Leídos y sin leer</h3><div class="nota">Qué parte de la selección nunca abriste</div>
+        <div class="caja"><canvas id="gLeidoTorta"></canvas></div></div>
+      <div class="tarjeta"><h3>Dominios principales</h3><div class="nota">Los 8 que más correo envían y el resto</div>
+        <div class="caja"><canvas id="gDomTorta"></canvas></div></div>
+      <div class="tarjeta"><h3>Tamaño de los correos</h3><div class="nota">Cuántos correos hay en cada rango de peso</div>
+        <div class="caja"><canvas id="gPesoTorta"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- BANDEJAS -->
+  <section class="panel" id="p-bandejas">
+    <div class="aviso" style="background:rgba(56,189,248,.07);border-color:rgba(56,189,248,.25);color:#bae6fd">
+      Son las pestañas que Gmail asigna solo: <b>Principal</b>, <b>Social</b>, <b>Promociones</b> y <b>Notificaciones</b>
+      (más Foros y Otros, que es el correo archivado sin categoría). Pulsa una tarjeta para ver el detalle de esa bandeja.
+      Respeta los filtros de arriba, incluido el mes.
+    </div>
+    <div class="bandejas" id="bandejaCards"></div>
+    <div class="graficos tres">
+      <div class="tarjeta"><h3>Correos por bandeja</h3><div class="nota">Reparto del volumen</div>
+        <div class="caja"><canvas id="gBandejaN"></canvas></div></div>
+      <div class="tarjeta"><h3>Espacio por bandeja</h3><div class="nota">Qué bandeja pesa más</div>
+        <div class="caja"><canvas id="gBandejaPeso"></canvas></div></div>
+      <div class="tarjeta"><h3>Leídos y sin leer</h3><div class="nota">Cuánto de cada bandeja nunca abriste</div>
+        <div class="caja"><canvas id="gBandejaLeido"></canvas></div></div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>Historia mensual por bandeja</h3>
+      <div class="nota">Cómo cambió lo que te llega, mes a mes</div>
+      <div class="caja alta"><canvas id="gBandejaMes"></canvas></div>
+    </div>
+    <div class="graficos" style="margin-top:14px">
+      <div class="tarjeta"><h3>Por año y bandeja</h3><div class="nota">Volumen anual apilado</div>
+        <div class="caja"><canvas id="gBandejaAnio"></canvas></div></div>
+      <div class="tarjeta"><h3>Por año, en porcentaje</h3><div class="nota">Qué parte del año fue cada bandeja</div>
+        <div class="caja"><canvas id="gBandejaAnioPct"></canvas></div></div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3 id="bandejaTitulo">Detalle de la bandeja</h3>
+      <div class="nota" id="bandejaNota"></div>
+      <div class="graficos">
+        <div class="caja alta"><canvas id="gBandejaTop"></canvas></div>
+        <div class="caja alta"><canvas id="gBandejaDom"></canvas></div>
+      </div>
+      <div class="tabla-scroll" style="margin-top:14px;max-height:430px">
+        <table id="tablaBandeja">
+          <thead><tr><th>Remitente</th><th class="num" style="text-align:right">Correos</th>
+            <th class="num" style="text-align:right">Espacio</th><th class="num" style="text-align:right">Sin leer</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- REMITENTES -->
+  <section class="panel" id="p-remitentes">
+    <div class="graficos" style="margin-bottom:14px">
+      <div class="tarjeta">
+        <h3>Quién te escribe más</h3>
+        <div class="nota">Top 12 por número de correos</div>
+        <div class="caja alta"><canvas id="gTopVolumen"></canvas></div>
+      </div>
+      <div class="tarjeta">
+        <h3>Quién ocupa más espacio</h3>
+        <div class="nota">Top 12 por peso acumulado</div>
+        <div class="caja alta"><canvas id="gTopPeso"></canvas></div>
+      </div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>De qué dominios viene tu correo</h3>
+      <div class="nota">Agrupa todos los correos de un mismo dominio, aunque vengan de direcciones distintas</div>
+      <div class="caja alta"><canvas id="gDominios"></canvas></div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3 id="tituloTabla">Remitentes</h3>
+      <div class="nota">Haz clic en una columna para ordenar. «Regla» copia la búsqueda de Gmail para borrar todo lo de ese remitente.</div>
+      <div class="tabla-scroll">
+        <table id="tablaRemitentes">
+          <thead>
+            <tr>
+              <th data-orden="nombre">Remitente</th>
+              <th data-orden="n" class="num" style="text-align:right">Correos</th>
+              <th data-orden="peso" class="num" style="text-align:right">Espacio</th>
+              <th data-orden="noleido" class="num" style="text-align:right">Sin leer</th>
+              <th data-orden="max">Último</th>
+              <th style="width:110px">Peso relativo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TENDENCIAS -->
+  <section class="panel" id="p-tendencias">
+    <div class="tarjeta" style="margin-bottom:14px">
+      <h3>Evolución mensual</h3>
+      <div class="nota">Correos recibidos por mes</div>
+      <div class="caja alta"><canvas id="gMes"></canvas></div>
+    </div>
+    <div class="graficos">
+      <div class="tarjeta">
+        <h3>Leídos y no leídos por año</h3>
+        <div class="nota">Cuánto correo queda pendiente de cada época</div>
+        <div class="caja"><canvas id="gLeidoAnio"></canvas></div>
+      </div>
+      <div class="tarjeta">
+        <h3>Cuándo llega tu correo</h3>
+        <div class="nota">Día de la semana y hora de llegada · pasa el cursor para ver la cifra</div>
+        <div class="mapa" id="mapaCalor"></div>
+        <div class="escala"><span>menos</span><div class="barra"></div><span>más</span></div>
+      </div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>Acumulado histórico</h3>
+      <div class="nota">Cuántos correos tenías en cada momento (suma de todo lo recibido hasta esa fecha)</div>
+      <div class="caja"><canvas id="gAcumulado"></canvas></div>
+    </div>
+    <div class="graficos" style="margin-top:14px">
+      <div class="tarjeta"><h3>Estacionalidad por mes del año</h3><div class="nota">Qué meses recibes más correo, sumando todos los años</div>
+        <div class="caja"><canvas id="gMesDelAnio"></canvas></div></div>
+      <div class="tarjeta"><h3>Por día de la semana</h3><div class="nota">Correos recibidos cada día</div>
+        <div class="caja"><canvas id="gDiaSemana"></canvas></div></div>
+    </div>
+    <div class="graficos" style="margin-top:14px">
+      <div class="tarjeta">
+        <h3>Tamaño de los correos</h3>
+        <div class="nota">Cuántos correos y cuánto espacio por rango de peso</div>
+        <div class="caja"><canvas id="gPesos"></canvas></div>
+      </div>
+      <div class="tarjeta">
+        <h3>Antigüedad del correo sin leer</h3>
+        <div class="nota">Los pendientes acumulados por año</div>
+        <div class="caja"><canvas id="gNoleidoViejo"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ETIQUETAS -->
+  <section class="panel" id="p-etiquetas">
+    <div class="graficos" style="margin-bottom:14px">
+      <div class="tarjeta">
+        <h3>Etiquetas por volumen</h3>
+        <div class="nota">Tus etiquetas propias y las importantes de Gmail</div>
+        <div class="caja alta"><canvas id="gEtiquetas"></canvas></div>
+      </div>
+      <div class="tarjeta">
+        <h3>Detalle</h3>
+        <div class="nota">Correos, espacio y porcentaje sin leer</div>
+        <div class="tabla-scroll" style="max-height:330px">
+          <table id="tablaEtiquetas">
+            <thead><tr><th>Etiqueta</th><th class="num" style="text-align:right">Correos</th><th class="num" style="text-align:right">Espacio</th><th class="num" style="text-align:right">Sin leer</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="graficos">
+      <div class="tarjeta"><h3>Reparto por etiqueta</h3><div class="nota">Las 8 etiquetas con más correo</div>
+        <div class="caja"><canvas id="gEtqTorta"></canvas></div></div>
+      <div class="tarjeta"><h3>Espacio por etiqueta</h3><div class="nota">Cuánto ocupa cada una</div>
+        <div class="caja"><canvas id="gEtqPeso"></canvas></div></div>
+    </div>
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>Etiquetas por año</h3>
+      <div class="nota">Historia: en qué años entró el correo de cada etiqueta (las 6 mayores)</div>
+      <div class="caja alta"><canvas id="gEtqAnio"></canvas></div>
+    </div>
+  </section>
+
+  <!-- LIMPIEZA -->
+  <section class="panel" id="p-limpieza">
+    <div class="aviso">
+      Las cifras de esta pestaña son sobre <b>todo el buzón</b>, no sobre los filtros.
+      Copia la consulta, pégala en Gmail y revisa el resultado antes de borrar:
+      cada regla incluye el enlace directo a esa búsqueda.
+    </div>
+    <div class="reglas" id="reglas"></div>
+
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>Remitentes que casi nunca abriste</h3>
+      <div class="nota">20 correos o más, con 90% o más sin abrir: los candidatos más claros a desaparecer</div>
+      <div class="tabla-scroll">
+        <table id="tablaNunca">
+          <thead><tr>
+            <th data-orden-nunca="nombre">Remitente</th>
+            <th data-orden-nunca="n" class="num" style="text-align:right">Correos</th>
+            <th data-orden-nunca="ratio" class="num" style="text-align:right">Sin abrir</th>
+            <th data-orden-nunca="peso" class="num" style="text-align:right">Espacio</th>
+            <th data-orden-nunca="max" class="num" style="text-align:right">Último</th>
+            <th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tarjeta" style="margin-top:14px">
+      <h3>Los correos más pesados</h3>
+      <div class="nota">Revisa si los adjuntos ya los tienes descargados antes de borrar</div>
+      <div class="tabla-scroll" style="max-height:420px">
+        <table id="tablaPesados">
+          <thead><tr><th>Fecha</th><th>Remitente</th><th>Asunto</th><th class="num" style="text-align:right">Tamaño</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="datos_gmail.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var D = window.DATOS_GMAIL;
+  var $ = function(s){ return document.querySelector(s); };
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  if (!D || !D.c || !D.c.f || !D.c.f.length) {
+    $("#sinDatos").classList.remove("oculto");
+    $("#app").classList.add("oculto");
+    return;
+  }
+
+  /* ===================== preparación de datos ===================== */
+  var N = D.c.f.length;
+  var DIA = 86400000;
+  var HOY = Date.now();
+  // formato español forzado (es-ES no agrupa números de 4 cifras)
+  function agrupar(v, dec){
+    if (!isFinite(v)) return "—";
+    var s = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: dec, maximumFractionDigits: dec
+    }).format(v);
+    return s.replace(/,/g,"\u0001").replace(/\./g,",").replace(/\u0001/g,".");
+  }
+  var nf  = { format: function(v){ return agrupar(v, 0); } };
+  var nf1 = { format: function(v){ return agrupar(v, 1); } };
+
+  var C = D.c;
+  var REM = D.remitentes, ETQ = D.etiquetas;
+
+  // arrays derivados (una sola vez)
+  var mesDelAnio = new Uint8Array(N), anio = new Int32Array(N), mes = new Int32Array(N), edad = new Float32Array(N), diaSem = new Uint8Array(N);
+  var remLower = new Array(REM.length), asuntoLower = new Array(N);
+  for (var i=0;i<REM.length;i++) remLower[i] = (REM[i][0]+" "+REM[i][1]+" "+REM[i][2]).toLowerCase();
+  for (var j=0;j<N;j++){
+    var f = C.f[j];
+    var d = new Date(f*DIA);
+    anio[j] = d.getUTCFullYear();
+    mes[j]  = anio[j]*100 + d.getUTCMonth()+1;
+    mesDelAnio[j] = d.getUTCMonth()+1;
+    diaSem[j] = d.getUTCDay();
+    edad[j] = (HOY - f*DIA) / (365.25*DIA);
+    asuntoLower[j] = (C.s[j]||"").toLowerCase();
+  }
+
+  var MIN_ANIO = 9999, MAX_ANIO = 0;
+  for (var k=0;k<N;k++){ if(anio[k]<MIN_ANIO)MIN_ANIO=anio[k]; if(anio[k]>MAX_ANIO)MAX_ANIO=anio[k]; }
+
+  function mb(b){ return b/1048576; }
+  function fmtMB(b){
+    var v = mb(b);
+    var s;
+    if (v >= 1024) s = nf1.format(v/1024) + " GB";
+    else if (v >= 10) s = nf.format(Math.round(v)) + " MB";
+    else s = nf1.format(v) + " MB";
+    return s.replace(",0 ", " ");
+  }
+  function pct(a,b){ return b ? (a*100/b) : 0; }
+  function fmtFecha(dia){ var d=new Date(dia*DIA); return d.getUTCDate().toString().padStart(2,"0")+"/"+(d.getUTCMonth()+1).toString().padStart(2,"0")+"/"+d.getUTCFullYear(); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  var CATS = ["Principal","Social","Promociones","Notificaciones","Foros","Otros"];
+  var COLORES = ["#38bdf8","#f472b6","#fbbf24","#5eead4","#a78bfa","#94a3b8"];
+
+  /* ===================== estado ===================== */
+  var F = { texto:"", dominio:"", cat:"", desde:"", hasta:"", mes:"", peso:0, etiqueta:"", noleido:false, boletin:false };
+  var seleccion = new Int32Array(N);
+  var nSel = 0;
+  var ordenRem = { campo:"n", dir:-1 };
+  var ordenNunca = { campo:"n", dir:-1 };
+
+  var charts = {};
+  function grafico(id, cfg){
+    if (!window.Chart) return null;
+    if (charts[id]) charts[id].destroy();
+    var el = document.getElementById(id);
+    if (!el) return null;
+    charts[id] = new Chart(el.getContext("2d"), cfg);
+    return charts[id];
+  }
+
+  if (window.Chart){
+    Chart.defaults.color = "#8fa3b8";
+    Chart.defaults.font.family = '"Segoe UI",Roboto,sans-serif';
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.boxHeight = 10;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = "rgba(9,14,20,.96)";
+    Chart.defaults.plugins.tooltip.borderColor = "#1f2b3a";
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.titleColor = "#e6edf6";
+    Chart.defaults.plugins.tooltip.bodyColor = "#c8d6e5";
+    Chart.defaults.maintainAspectRatio = false;
+  }
+  var REJILLA = { color:"rgba(148,163,184,.10)" };
+
+  /* ===================== filtros UI ===================== */
+  function llenarSelects(){
+    var dominios = {}, años = {};
+    for (var i=0;i<N;i++){
+      var dm = REM[C.r[i]][2];
+      dominios[dm] = (dominios[dm]||0)+1;
+    }
+    var listaDom = Object.keys(dominios).sort(function(a,b){ return dominios[b]-dominios[a]; });
+    var html = '<option value="">Todos</option>';
+    for (var x=0;x<Math.min(listaDom.length,300);x++){
+      html += '<option value="'+esc(listaDom[x])+'">'+esc(listaDom[x])+' ('+nf.format(dominios[listaDom[x]])+')</option>';
+    }
+    $("#fDominio").innerHTML = html;
+
+    var opAnios = "";
+    for (var a=MAX_ANIO;a>=MIN_ANIO;a--) opAnios += '<option value="'+a+'">'+a+'</option>';
+    $("#fDesde").innerHTML = '<option value="">Todos</option>' + opAnios;
+    $("#fHasta").innerHTML = '<option value="">Todos</option>' + opAnios;
+
+    var htmlEt = '<option value="">Todas</option>';
+    for (var e=0;e<ETQ.length;e++) htmlEt += '<option value="'+e+'">'+esc(ETQ[e].n)+'</option>';
+    $("#fEtiqueta").innerHTML = htmlEt;
+  }
+
+  function leerFiltros(){
+    F.texto = $("#fTexto").value.trim().toLowerCase();
+    F.dominio = $("#fDominio").value;
+    F.cat = $("#fCategoria").value;
+    F.desde = $("#fDesde").value;
+    F.hasta = $("#fHasta").value;
+    F.mes = $("#fMes").value;
+    F.peso = parseFloat($("#fPeso").value)||0;
+    F.etiqueta = $("#fEtiqueta").value;
+    F.noleido = $("#fNoleido").checked;
+    F.boletin = $("#fBoletin").checked;
+  }
+
+  var hayFiltros = function(){
+    return !!(F.texto || F.dominio || F.cat!=="" || F.desde || F.hasta || F.mes || F.peso || F.etiqueta!=="" || F.noleido || F.boletin);
+  };
+
+  function aplicarFiltros(){
+    var desde = F.desde ? parseInt(F.desde,10) : -1;
+    var hasta = F.hasta ? parseInt(F.hasta,10) : 9999;
+    var cat = F.cat === "" ? -1 : parseInt(F.cat,10);
+    var mesF = F.mes ? parseInt(F.mes,10) : 0;
+    var pesoMin = F.peso ? F.peso*1048576 : 0;
+    var bit = F.etiqueta === "" ? 0 : (1 << parseInt(F.etiqueta,10));
+    var texto = F.texto, dom = F.dominio, noleido = F.noleido, boletin = F.boletin;
+    var n = 0;
+    for (var i=0;i<N;i++){
+      var a = anio[i];
+      if (a < desde || a > hasta) continue;
+      if (mesF && mesDelAnio[i] !== mesF) continue;
+      if (cat >= 0 && C.c[i] !== cat) continue;
+      if (pesoMin && C.p[i] < pesoMin) continue;
+      if (noleido && C.u[i] !== 1) continue;
+      if (boletin && C.b[i] !== 1) continue;
+      if (dom && REM[C.r[i]][2] !== dom) continue;
+      if (bit && !(C.e[i] & bit)) continue;
+      if (texto && remLower[C.r[i]].indexOf(texto) < 0 && asuntoLower[i].indexOf(texto) < 0) continue;
+      seleccion[n++] = i;
+    }
+    nSel = n;
+    $("#chipFiltro").textContent = hayFiltros() ? nf.format(n) + " de " + nf.format(N) : "sin filtros";
+    $("#chipFiltro").style.color = hayFiltros() ? "#fbbf24" : "";
+    $("#chipFiltro").style.borderColor = hayFiltros() ? "rgba(251,191,36,.35)" : "";
+    $("#chipFiltro").style.background = hayFiltros() ? "rgba(251,191,36,.08)" : "";
+  }
+
+  /* ===================== agregaciones ===================== */
+  function agregar(){
+    var porAnio = {}, porMes = {}, porRem = {}, porCat = new Array(6).fill(0), porCatPeso = new Array(6).fill(0);
+    var porHora = new Array(24).fill(0);
+    var porDominio = {};
+    var buckets = [0,0,0,0,0], bucketsPeso = [0,0,0,0,0];
+    var leidoAnio = {}, noLeidoAnio = {};
+    var totalPeso = 0, totalNoLeido = 0, totalAdj = 0, remVistos = {};
+    var sumaEdad = 0;
+    var etqConteo = new Array(ETQ.length).fill(0), etqPeso = new Array(ETQ.length).fill(0), etqNoleido = new Array(ETQ.length).fill(0), sinEtiqueta = 0;
+    var minF = 9999999, maxF = 0;
+
+    for (var s=0;s<nSel;s++){
+      var i = seleccion[s];
+      var a = anio[i], m = mes[i], p = C.p[i], u = C.u[i], r = C.r[i];
+      var f = C.f[i];
+
+      porAnio[a] = (porAnio[a]||0)+1;
+      porMes[m] = (porMes[m]||0)+1;
+      if (!porRem[r]) porRem[r] = { n:0, peso:0, noleido:0, min:9999999, max:0 };
+      var rs = porRem[r];
+      rs.n++; rs.peso += p; rs.noleido += u;
+      if (f < rs.min) rs.min = f;
+      if (f > rs.max) rs.max = f;
+
+      var c = C.c[i];
+      porCat[c]++; porCatPeso[c] += p;
+
+      porHora[C.h[i]]++;
+
+      var dom = REM[r][2];
+      if (!porDominio[dom]) porDominio[dom] = { n:0, peso:0, noleido:0 };
+      porDominio[dom].n++; porDominio[dom].peso += p; porDominio[dom].noleido += u;
+
+      var b;
+      if (p < 50*1024) b=0; else if (p < 200*1024) b=1; else if (p < 1048576) b=2; else if (p < 5242880) b=3; else b=4;
+      buckets[b]++; bucketsPeso[b] += p;
+
+      if (u){ noLeidoAnio[a] = (noLeidoAnio[a]||0)+1; totalNoLeido++; }
+      else { leidoAnio[a] = (leidoAnio[a]||0)+1; }
+
+      totalPeso += p;
+      if (C.a[i]) totalAdj++;
+      remVistos[r] = 1;
+      sumaEdad += edad[i];
+
+      if (f < minF) minF = f;
+      if (f > maxF) maxF = f;
+
+      var ms = C.e[i];
+      if (!ms) sinEtiqueta++;
+      for (var e=0;e<ETQ.length;e++){ if (ms & (1<<e)){ etqConteo[e]++; etqPeso[e] += p; etqNoleido[e] += u; } }
+    }
+
+    return {
+      porAnio:porAnio, porMes:porMes, porRem:porRem, porCat:porCat, porCatPeso:porCatPeso,
+      porHora:porHora, buckets:buckets, bucketsPeso:bucketsPeso, leidoAnio:leidoAnio, noLeidoAnio:noLeidoAnio,
+      porDominio:porDominio,
+      totalPeso:totalPeso, totalNoLeido:totalNoLeido, totalAdj:totalAdj,
+      remitentes:Object.keys(remVistos).length,
+      etqConteo:etqConteo, etqPeso:etqPeso, etqNoleido:etqNoleido, sinEtiqueta:sinEtiqueta,
+      sumaEdad:sumaEdad,
+      minF:minF, maxF:maxF
+    };
+  }
+
+  /* ===================== KPIs ===================== */
+  function pintarKPIs(A){
+    var antig = nSel ? A.sumaEdad/nSel : 0;
+    var cards = [
+      { et:"Correos", val:nf.format(nSel), pie:(hayFiltros()? "de "+nf.format(N)+" en total" : "en todo el buzón"), c:"#38bdf8" },
+      { et:"Espacio ocupado", val:fmtMB(A.totalPeso), pie:"media <b>"+fmtMB(nSel? A.totalPeso/nSel : 0)+"</b> por correo", c:"#a78bfa" },
+      { et:"Sin leer", val:nf.format(A.totalNoLeido), pie:"<b>"+nf1.format(pct(A.totalNoLeido,nSel))+"%</b> nunca se abrió", c:"#fbbf24" },
+      { et:"Remitentes", val:nf.format(A.remitentes), pie:"distintos en la selección", c:"#f472b6" },
+      { et:"Correos pesados", val:nf.format(A.buckets[3]+A.buckets[4]), pie:">1 MB · <b>"+nf1.format(pct(A.buckets[3]+A.buckets[4],nSel))+"%</b> del total", c:"#5eead4" },
+      { et:"Antigüedad media", val:(antig>0? nf1.format(antig)+" años" : "—"), pie:(nSel? fmtFecha(A.minF)+" → "+fmtFecha(A.maxF) : "sin datos"), c:"#94a3b8" }
+    ];
+    $("#kpis").innerHTML = cards.map(function(c){
+      return '<div class="kpi" style="--c:'+c.c+'"><div class="et">'+c.et+'</div><div class="val">'+c.val+'</div><div class="pie">'+c.pie+'</div></div>';
+    }).join("");
+  }
+
+  /* ===================== resumen narrativo ===================== */
+  function pintarHallazgos(A){
+    var frases = [];
+    frases.push({ic:"◷", t:"Tu selección cubre <b>"+nf.format(nSel)+" correos</b> que ocupan <b>"+fmtMB(A.totalPeso)+"</b>. De esos, <span class='destaca'>"+nf.format(A.totalNoLeido)+"</span> siguen sin abrirse ("+nf1.format(pct(A.totalNoLeido,nSel))+"%)."});
+
+    // remitente dominante
+    var remOrd = Object.keys(A.porRem).sort(function(a,b){ return A.porRem[b].n - A.porRem[a].n; });
+    if (remOrd.length){
+      var top10 = remOrd.slice(0,10), sumaTop = 0;
+      top10.forEach(function(r){ sumaTop += A.porRem[r].n; });
+      var primero = remOrd[0];
+      frases.push({ic:"✉", t:'El remitente más frecuente es <b>'+esc(REM[primero][0]||REM[primero][1])+'</b> con <b>'+nf.format(A.porRem[primero].n)+'</b> correos. Los <b>10 primeros</b> concentran el <span class="destaca">'+nf1.format(pct(sumaTop,nSel))+'%</span> del volumen.'});
+    }
+
+    // dominios
+    var domOrd = Object.keys(A.porDominio).sort(function(a,b){ return A.porDominio[b].n - A.porDominio[a].n; });
+    if (domOrd.length > 3){
+      var sumaTop5 = 0, nombres5 = [];
+      domOrd.slice(0,5).forEach(function(d){ sumaTop5 += A.porDominio[d].n; nombres5.push(d); });
+      frases.push({ic:"▦", t:'Cinco dominios concentran el <span class="destaca">'+nf1.format(pct(sumaTop5,nSel))+'%</span> del correo: <b>'+nombres5.join(', ')+'</b>.'});
+    }
+
+    // peso
+    var pesados = A.buckets[3]+A.buckets[4];
+    if (pesados) frases.push({ic:"⚖", t:'Solo <b>'+nf.format(pesados)+'</b> correos superan 1 MB, pero suman <b>'+fmtMB(A.bucketsPeso[3]+A.bucketsPeso[4])+'</b>: el <span class="destaca">'+nf1.format(pct(A.bucketsPeso[3]+A.bucketsPeso[4],A.totalPeso))+'%</span> del espacio. Ahí está el ahorro real.'});
+
+    // promociones
+    var promo = A.porCat[2];
+    if (promo) frases.push({ic:"％", t:'<b>'+nf.format(promo)+'</b> correos son promociones ('+nf1.format(pct(promo,nSel))+'%) y ocupan '+fmtMB(A.porCatPeso[2])+'. Son los más prescindibles.'});
+
+    // oportunidad
+    var viejosNoLeidos = 0;
+    for (var s=0;s<nSel;s++){ var i=seleccion[s]; if (C.u[i] && edad[i] > 2) viejosNoLeidos++; }
+    if (viejosNoLeidos) frases.push({ic:"⌛", t:'<b>'+nf.format(viejosNoLeidos)+'</b> correos llevan <span class="destaca">más de 2 años sin abrirse</span>. Es la limpieza más segura que puedes hacer hoy.'});
+
+    // anio pico
+    var anios = Object.keys(A.porAnio);
+    if (anios.length > 1){
+      var pico = anios.sort(function(a,b){ return A.porAnio[b]-A.porAnio[a]; })[0];
+      frases.push({ic:"⌁", t:'El año de mayor actividad fue <b>'+pico+'</b> con '+nf.format(A.porAnio[pico])+' correos ('+nf1.format(pct(A.porAnio[pico],nSel))+'% de la selección).'});
+    }
+
+    $("#hallazgos").innerHTML = frases.map(function(f){
+      return '<li><span class="ic">'+f.ic+'</span><span>'+f.t+'</span></li>';
+    }).join("");
+  }
+
+  /* ===================== gráficos ===================== */
+  function pintarGraficos(A){
+    var anios = Object.keys(A.porAnio).map(Number).sort(function(a,b){return a-b;});
+
+    // oportunidad: espacio por tipo de correo
+    var op = [
+      { l:"Promociones", v:0 }, { l:"No leídos", v:0 }, { l:"Con adjuntos (>1 MB)", v:0 }, { l:"Resto", v:0 }
+    ];
+    for (var s=0;s<nSel;s++){
+      var i = seleccion[s], p = C.p[i];
+      if (C.c[i] === 2) op[0].v += p;
+      else if (C.u[i] === 1) op[1].v += p;
+      else if (C.a[i]) op[2].v += p;
+      else op[3].v += p;
+    }
+    grafico("gOportunidad", {
+      type:"doughnut",
+      data:{ labels:op.map(function(o){return o.l;}),
+        datasets:[{ data:op.map(function(o){return mb(o.v);}),
+          backgroundColor:["#fbbf24","#fb7185","#38bdf8","#334155"], borderWidth:0, hoverOffset:8 }] },
+      options:{ cutout:"62%", plugins:{ legend:{position:"bottom"},
+        tooltip:{ callbacks:{ label:function(ctx){ return " "+ctx.label+": "+fmtMB(ctx.raw*1048576); } } } } }
+    });
+
+    grafico("gAnio", {
+      type:"bar",
+      data:{ labels:anios, datasets:[{ label:"Correos", data:anios.map(function(a){return A.porAnio[a];}),
+        backgroundColor:"rgba(56,189,248,.65)", hoverBackgroundColor:"#38bdf8", borderRadius:5, maxBarThickness:46 }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+nf.format(c.raw)+" correos";}}}},
+        scales:{ x:{grid:{display:false}}, y:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}} } }
+    });
+
+    var cats = [];
+    for (var c=0;c<6;c++) if (A.porCat[c]) cats.push(c);
+    grafico("gCategoria", {
+      type:"doughnut",
+      data:{ labels:cats.map(function(c){return CATS[c];}),
+        datasets:[{ data:cats.map(function(c){return A.porCat[c];}),
+          backgroundColor:cats.map(function(c){return COLORES[c];}), borderWidth:0, hoverOffset:8 }] },
+      options:{ cutout:"58%", plugins:{ legend:{position:"bottom"},
+        tooltip:{ callbacks:{ label:function(ctx){
+          var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+          return " "+ctx.label+": "+nf.format(ctx.raw)+" ("+nf1.format(pct(ctx.raw,total))+"%)"; } } } } }
+    });
+
+    // top remitentes
+    var porN = Object.keys(A.porRem).map(function(r){ return [parseInt(r,10), A.porRem[r]]; })
+      .sort(function(a,b){ return b[1].n - a[1].n; }).slice(0,12);
+    grafico("gTopVolumen", {
+      type:"bar",
+      data:{ labels:porN.map(function(x){ return recortar(REM[x[0]][0]||REM[x[0]][1], 26); }),
+        datasets:[{ data:porN.map(function(x){return x[1].n;}),
+          backgroundColor:"rgba(167,139,250,.65)", hoverBackgroundColor:"#a78bfa", borderRadius:5, maxBarThickness:18 }] },
+      options:{ indexAxis:"y", plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+nf.format(c.raw)+" correos";}}}},
+        scales:{ x:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}}, y:{grid:{display:false}} } }
+    });
+
+    var porP = Object.keys(A.porRem).map(function(r){ return [parseInt(r,10), A.porRem[r]]; })
+      .sort(function(a,b){ return b[1].peso - a[1].peso; }).slice(0,12);
+    grafico("gTopPeso", {
+      type:"bar",
+      data:{ labels:porP.map(function(x){ return recortar(REM[x[0]][0]||REM[x[0]][1], 26); }),
+        datasets:[{ data:porP.map(function(x){return mb(x[1].peso);}),
+          backgroundColor:"rgba(94,234,212,.6)", hoverBackgroundColor:"#5eead4", borderRadius:5, maxBarThickness:18 }] },
+      options:{ indexAxis:"y", plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return " "+fmtMB(c.raw*1048576);}}}},
+        scales:{ x:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v)+" MB";}}}, y:{grid:{display:false}} } }
+    });
+
+    // meses
+    var claves = Object.keys(A.porMes).map(Number).sort(function(a,b){return a-b;});
+    var MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    grafico("gMes", {
+      type:"line",
+      data:{ labels:claves.map(function(m){ return MESES[(m%100)-1]+" "+Math.floor(m/100); }),
+        datasets:[{ label:"Correos", data:claves.map(function(m){return A.porMes[m];}),
+          borderColor:"#38bdf8", backgroundColor:"rgba(56,189,248,.13)", fill:true, tension:.34,
+          pointRadius:claves.length>48?0:2.5, pointHoverRadius:5, borderWidth:2 }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+nf.format(c.raw)+" correos";}}}},
+        interaction:{mode:"index",intersect:false},
+        scales:{ x:{grid:{display:false}, ticks:{maxTicksLimit:16, maxRotation:0}},
+                 y:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}} } }
+    });
+
+    grafico("gLeidoAnio", {
+      type:"bar",
+      data:{ labels:anios, datasets:[
+        { label:"Leídos", data:anios.map(function(a){return A.leidoAnio[a]||0;}), backgroundColor:"rgba(56,189,248,.55)", borderRadius:4, stack:"s" },
+        { label:"Sin leer", data:anios.map(function(a){return A.noLeidoAnio[a]||0;}), backgroundColor:"rgba(251,191,36,.75)", borderRadius:4, stack:"s" }
+      ]},
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{callbacks:{label:function(c){return " "+c.dataset.label+": "+nf.format(c.raw);}}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}} } }
+    });
+
+    // mapa de calor dia x hora
+    var calor = [];
+    for (var dd=0; dd<7; dd++){ calor.push(new Array(24).fill(0)); }
+    var maxCalor = 1;
+    for (var q2=0;q2<nSel;q2++){
+      var i2 = seleccion[q2];
+      var f2 = calor[diaSem[i2]][C.h[i2]]++;
+    }
+    for (var a2=0;a2<7;a2++) for (var h2=0;h2<24;h2++) if (calor[a2][h2] > maxCalor) maxCalor = calor[a2][h2];
+    var minCalor = maxCalor;
+    for (var a3=0;a3<7;a3++) for (var h4=0;h4<24;h4++) if (calor[a3][h4] < minCalor) minCalor = calor[a3][h4];
+    var rangoCalor = Math.max(1, maxCalor - minCalor);
+
+    var DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+    var ordenDias = [1,2,3,4,5,6,0];
+    var htmlMapa = '<div class="et"></div>';
+    for (var hh=0; hh<24; hh++) htmlMapa += '<div class="hd">'+(hh%3===0? hh : "")+'</div>';
+    ordenDias.forEach(function(dn){
+      htmlMapa += '<div class="et">'+DIAS[dn]+'</div>';
+      for (var h3=0; h3<24; h3++){
+        var v = calor[dn][h3];
+        var inten = v ? 0.14 + 0.82*Math.pow((v - minCalor)/rangoCalor, 0.7) : 0;
+        var estilo = v ? 'background:rgba(94,234,212,'+inten.toFixed(2)+')' : '';
+        htmlMapa += '<div class="celda" style="'+estilo+'" title="'+DIAS[dn]+' '+h3+':00 · '+nf.format(v)+' correos"></div>';
+      }
+    });
+    var contMapa = document.getElementById("mapaCalor");
+    if (contMapa) contMapa.innerHTML = htmlMapa;
+
+    var doms = Object.keys(A.porDominio).map(function(d){ return [d, A.porDominio[d]]; })
+      .sort(function(a,b){ return b[1].n - a[1].n; }).slice(0,12);
+    grafico("gDominios", {
+      type:"bar",
+      data:{ labels:doms.map(function(x){ return recortar(x[0], 26); }),
+        datasets:[
+          { label:"Correos", data:doms.map(function(x){return x[1].n;}),
+            backgroundColor:"rgba(56,189,248,.55)", hoverBackgroundColor:"#38bdf8", borderRadius:5, maxBarThickness:16 },
+          { label:"Sin leer", data:doms.map(function(x){return x[1].noleido;}),
+            backgroundColor:"rgba(251,191,36,.65)", hoverBackgroundColor:"#fbbf24", borderRadius:5, maxBarThickness:16 }
+        ] },
+      options:{ indexAxis:"y", plugins:{ legend:{position:"bottom"},
+        tooltip:{ callbacks:{ label:function(c){ return " "+c.dataset.label+": "+nf.format(c.raw); } } } },
+        scales:{ x:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}}, y:{grid:{display:false}} } }
+    });
+
+    var etiquetasBucket = ["< 50 KB","50–200 KB","200 KB–1 MB","1–5 MB","> 5 MB"];
+    grafico("gPesos", {
+      type:"bar",
+      data:{ labels:etiquetasBucket,
+        datasets:[
+          { label:"Correos", data:A.buckets, backgroundColor:"rgba(167,139,250,.6)", borderRadius:4, yAxisID:"y" },
+          { label:"Espacio (MB)", data:A.bucketsPeso.map(mb), type:"line", borderColor:"#fbbf24",
+            backgroundColor:"rgba(251,191,36,.12)", tension:.3, pointRadius:3, yAxisID:"y1" }
+        ]},
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{callbacks:{label:function(c){
+          return c.dataset.label === "Espacio (MB)" ? " "+fmtMB(c.raw*1048576) : " "+nf.format(c.raw)+" correos"; }}}},
+        scales:{ x:{grid:{display:false}},
+          y:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}},
+          y1:{position:"right", grid:{display:false}, ticks:{callback:function(v){return nf.format(v)+" MB";}}} } }
+    });
+
+    // no leídos por antigüedad (años de antigüedad)
+    var bucketsEdad = [0,0,0,0,0,0]; // <1, 1-2, 2-3, 3-5, 5-10, >10
+    for (var q=0;q<nSel;q++){ var ii = seleccion[q]; if (!C.u[ii]) continue; var e = edad[ii];
+      if (e<1) bucketsEdad[0]++; else if (e<2) bucketsEdad[1]++; else if (e<3) bucketsEdad[2]++;
+      else if (e<5) bucketsEdad[3]++; else if (e<10) bucketsEdad[4]++; else bucketsEdad[5]++; }
+    grafico("gNoleidoViejo", {
+      type:"bar",
+      data:{ labels:["< 1 año","1–2 años","2–3 años","3–5 años","5–10 años","> 10 años"],
+        datasets:[{ data:bucketsEdad, backgroundColor:["#5eead4","#34d399","#fbbf24","#fb923c","#fb7185","#dc2626"], borderRadius:5 }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+nf.format(c.raw)+" sin leer";}}}},
+        scales:{ x:{grid:{display:false}}, y:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}} } }
+    });
+
+    // etiquetas
+    var idxEt = [];
+    for (var z=0;z<ETQ.length;z++) if (A.etqConteo[z]) idxEt.push(z);
+    idxEt.sort(function(a,b){ return A.etqConteo[b]-A.etqConteo[a]; });
+    idxEt = idxEt.slice(0,12);
+    if (idxEt.length){
+      grafico("gEtiquetas", {
+        type:"bar",
+        data:{ labels:idxEt.map(function(z){return recortar(ETQ[z].n,24);}),
+          datasets:[{ data:idxEt.map(function(z){return A.etqConteo[z];}), backgroundColor:"rgba(94,234,212,.55)",
+            hoverBackgroundColor:"#5eead4", borderRadius:5, maxBarThickness:18 }] },
+        options:{ indexAxis:"y", plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return " "+nf.format(c.raw)+" correos";}}}},
+          scales:{ x:{grid:REJILLA, ticks:{callback:function(v){return nf.format(v);}}}, y:{grid:{display:false}} } }
+      });
+    } else {
+      grafico("gEtiquetas", {type:"bar", data:{labels:["Sin etiquetas"],datasets:[{data:[0]}]}, options:{plugins:{legend:{display:false}}}});
+    }
+
+    // tabla etiquetas
+    var filas = idxEt.map(function(z){
+      return '<tr><td>'+esc(ETQ[z].n)+'</td><td class="num">'+nf.format(A.etqConteo[z])+'</td><td class="num">'+fmtMB(A.etqPeso[z])+'</td><td class="num">'+nf.format(A.etqNoleido[z])+' <span style="color:var(--tenue)">('+nf1.format(pct(A.etqNoleido[z],A.etqConteo[z]))+'%)</span></td></tr>';
+    });
+    if (A.sinEtiqueta) filas.push('<tr><td style="color:var(--tenue)">Sin etiqueta</td><td class="num">'+nf.format(A.sinEtiqueta)+'</td><td class="num">—</td><td class="num">—</td></tr>');
+    $("#tablaEtiquetas tbody").innerHTML = filas.join("") || '<tr><td colspan="4" class="vacio">Sin etiquetas en esta selección</td></tr>';
+    pintarExtra(A);
+  }
+
+  /* ===================== graficos adicionales ===================== */
+  var PAL = ["#38bdf8","#a78bfa","#f472b6","#fbbf24","#5eead4","#fb7185","#4ade80","#fb923c","#818cf8","#22d3ee","#e879f9","#94a3b8"];
+  var MESES_L = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  var DIAS_L = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+  var catSel = -1;
+
+  function torta(id, etiquetas, datos, colores, formato){
+    var total = datos.reduce(function(a,b){ return a+b; }, 0);
+    grafico(id, {
+      type:"doughnut",
+      data:{ labels:etiquetas, datasets:[{ data:datos, backgroundColor:colores, borderWidth:0, hoverOffset:8 }] },
+      options:{ cutout:"56%", plugins:{ legend:{position:"bottom"},
+        tooltip:{ callbacks:{ label:function(c){
+          var v = formato ? formato(c.raw) : nf.format(c.raw);
+          return " "+c.label+": "+v+" ("+nf1.format(pct(c.raw,total))+"%)"; } } } } }
+    });
+  }
+
+  function pintarExtra(A){
+    var mesesOrd = Object.keys(A.porMes).map(Number).sort(function(a,b){ return a-b; });
+    var anios = Object.keys(A.porAnio).map(Number).sort(function(a,b){ return a-b; });
+    var etqMes = function(m){ return MESES_L[(m%100)-1]+" "+Math.floor(m/100); };
+
+    // ---- pasada unica sobre la seleccion ----
+    var catN = [0,0,0,0,0,0], catPeso = [0,0,0,0,0,0], catNo = [0,0,0,0,0,0];
+    var catMes = [{},{},{},{},{},{}], catAnio = [{},{},{},{},{},{}];
+    var remCat = [{},{},{},{},{},{}], domCat = [{},{},{},{},{},{}];
+    var porMesAnio = new Array(12).fill(0), porDiaSem = new Array(7).fill(0);
+    var etqAnio = [];
+    for (var z0=0; z0<ETQ.length; z0++) etqAnio.push({});
+    for (var s=0; s<nSel; s++){
+      var i = seleccion[s], c = C.c[i], r = C.r[i], u = C.u[i];
+      catN[c]++; catPeso[c] += C.p[i]; catNo[c] += u;
+      catMes[c][mes[i]] = (catMes[c][mes[i]]||0)+1;
+      catAnio[c][anio[i]] = (catAnio[c][anio[i]]||0)+1;
+      var rc = remCat[c][r] || (remCat[c][r] = { n:0, peso:0, no:0 });
+      rc.n++; rc.peso += C.p[i]; rc.no += u;
+      var dm = REM[r][2];
+      domCat[c][dm] = (domCat[c][dm]||0)+1;
+      porMesAnio[mesDelAnio[i]-1]++;
+      porDiaSem[(diaSem[i]+6)%7]++;
+      var ms = C.e[i];
+      if (ms){ for (var e=0; e<ETQ.length; e++){ if (ms & (1<<e)) etqAnio[e][anio[i]] = (etqAnio[e][anio[i]]||0)+1; } }
+    }
+
+    // ---- RESUMEN: tortas ----
+    var leidos = nSel - A.totalNoLeido;
+    torta("gLeidoTorta", ["Leídos","Sin leer"], [leidos, A.totalNoLeido], ["#38bdf8","#fbbf24"]);
+
+    var doms = Object.keys(A.porDominio).map(function(d){ return [d, A.porDominio[d].n]; })
+      .sort(function(a,b){ return b[1]-a[1]; });
+    var topD = doms.slice(0,8), restoD = 0;
+    doms.slice(8).forEach(function(x){ restoD += x[1]; });
+    var etD = topD.map(function(x){ return recortar(x[0],22); }), daD = topD.map(function(x){ return x[1]; });
+    if (restoD){ etD.push("Otros dominios"); daD.push(restoD); }
+    torta("gDomTorta", etD, daD, PAL);
+
+    torta("gPesoTorta", ["< 50 KB","50–200 KB","200 KB–1 MB","1–5 MB","> 5 MB"], A.buckets,
+      ["#5eead4","#38bdf8","#a78bfa","#fbbf24","#fb7185"]);
+
+    // ---- TENDENCIAS ----
+    var acum = 0, serieAcum = mesesOrd.map(function(m){ acum += A.porMes[m]; return acum; });
+    grafico("gAcumulado", {
+      type:"line",
+      data:{ labels:mesesOrd.map(etqMes), datasets:[{ label:"Correos acumulados", data:serieAcum,
+        borderColor:"#a78bfa", backgroundColor:"rgba(167,139,250,.14)", fill:true, tension:.25,
+        pointRadius:0, pointHoverRadius:5, borderWidth:2 }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return " "+nf.format(c.raw)+" correos"; }}}},
+        interaction:{mode:"index",intersect:false},
+        scales:{ x:{grid:{display:false}, ticks:{maxTicksLimit:14, maxRotation:0}},
+                 y:{grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+    grafico("gMesDelAnio", {
+      type:"bar",
+      data:{ labels:MESES_L, datasets:[{ data:porMesAnio, borderRadius:5, maxBarThickness:36,
+        backgroundColor:porMesAnio.map(function(v){ return v === Math.max.apply(null, porMesAnio) ? "#fbbf24" : "rgba(56,189,248,.6)"; }) }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return " "+nf.format(c.raw)+" correos"; }}}},
+        scales:{ x:{grid:{display:false}}, y:{grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+    grafico("gDiaSemana", {
+      type:"bar",
+      data:{ labels:DIAS_L, datasets:[{ data:porDiaSem, borderRadius:5, maxBarThickness:36,
+        backgroundColor:porDiaSem.map(function(v){ return v === Math.max.apply(null, porDiaSem) ? "#fbbf24" : "rgba(94,234,212,.6)"; }) }] },
+      options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return " "+nf.format(c.raw)+" correos"; }}}},
+        scales:{ x:{grid:{display:false}}, y:{grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+
+    // ---- ETIQUETAS ----
+    var idx = [];
+    for (var z=0; z<ETQ.length; z++) if (A.etqConteo[z]) idx.push(z);
+    idx.sort(function(a,b){ return A.etqConteo[b]-A.etqConteo[a]; });
+    var top8 = idx.slice(0,8), rEt = 0;
+    idx.slice(8).forEach(function(z){ rEt += A.etqConteo[z]; });
+    var le = top8.map(function(z){ return recortar(ETQ[z].n,22); }), da = top8.map(function(z){ return A.etqConteo[z]; });
+    if (rEt){ le.push("Otras etiquetas"); da.push(rEt); }
+    torta("gEtqTorta", le, da, PAL);
+    var porPeso = idx.slice().sort(function(a,b){ return A.etqPeso[b]-A.etqPeso[a]; }).slice(0,8);
+    var lp = porPeso.map(function(z){ return recortar(ETQ[z].n,22); }), dp = porPeso.map(function(z){ return mb(A.etqPeso[z]); });
+    torta("gEtqPeso", lp, dp, PAL, function(v){ return fmtMB(v*1048576); });
+    var top6 = idx.slice(0,6);
+    grafico("gEtqAnio", {
+      type:"bar",
+      data:{ labels:anios, datasets:top6.map(function(z, k){
+        return { label:ETQ[z].n, data:anios.map(function(a){ return etqAnio[z][a]||0; }),
+          backgroundColor:PAL[k], borderRadius:3, stack:"e" }; }) },
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{mode:"index", callbacks:{label:function(c){ return " "+c.dataset.label+": "+nf.format(c.raw); }}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+
+    // ---- BANDEJAS DE GMAIL ----
+    var orden = [0,2,1,3,4,5];
+    var hayCat = orden.filter(function(c){ return catN[c] > 0; });
+    if (catSel < 0 || !catN[catSel]) catSel = hayCat.length ? hayCat.slice().sort(function(a,b){ return catN[b]-catN[a]; })[0] : 0;
+    $("#bandejaCards").innerHTML = orden.map(function(c){
+      return '<div class="bandeja'+(c===catSel?' sel':'')+'" data-bandeja="'+c+'" style="--c:'+COLORES[c]+'">'+
+        '<div class="et">'+CATS[c]+'</div><div class="val">'+nf.format(catN[c])+'</div>'+
+        '<div class="pie"><b>'+nf1.format(pct(catN[c],nSel))+'%</b> del total<br><b>'+fmtMB(catPeso[c])+'</b> de espacio<br>'+
+        '<b>'+nf1.format(pct(catNo[c],catN[c]))+'%</b> sin leer</div></div>';
+    }).join("");
+
+    var cc = orden.filter(function(c){ return catN[c] > 0; });
+    torta("gBandejaN", cc.map(function(c){ return CATS[c]; }), cc.map(function(c){ return catN[c]; }), cc.map(function(c){ return COLORES[c]; }));
+    torta("gBandejaPeso", cc.map(function(c){ return CATS[c]; }), cc.map(function(c){ return mb(catPeso[c]); }),
+      cc.map(function(c){ return COLORES[c]; }), function(v){ return fmtMB(v*1048576); });
+    grafico("gBandejaLeido", {
+      type:"bar",
+      data:{ labels:cc.map(function(c){ return CATS[c]; }), datasets:[
+        { label:"Leídos", data:cc.map(function(c){ return catN[c]-catNo[c]; }), backgroundColor:"rgba(56,189,248,.6)", borderRadius:4, stack:"l" },
+        { label:"Sin leer", data:cc.map(function(c){ return catNo[c]; }), backgroundColor:"rgba(251,191,36,.8)", borderRadius:4, stack:"l" } ] },
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{callbacks:{label:function(c){ return " "+c.dataset.label+": "+nf.format(c.raw); }}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+    grafico("gBandejaMes", {
+      type:"bar",
+      data:{ labels:mesesOrd.map(etqMes), datasets:cc.map(function(c){
+        return { label:CATS[c], data:mesesOrd.map(function(m){ return catMes[c][m]||0; }),
+          backgroundColor:COLORES[c], stack:"m", borderRadius:2 }; }) },
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{mode:"index", callbacks:{label:function(c){ return " "+c.dataset.label+": "+nf.format(c.raw); }}}},
+        scales:{ x:{stacked:true, grid:{display:false}, ticks:{maxTicksLimit:16, maxRotation:0}},
+                 y:{stacked:true, grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+    grafico("gBandejaAnio", {
+      type:"bar",
+      data:{ labels:anios, datasets:cc.map(function(c){
+        return { label:CATS[c], data:anios.map(function(a){ return catAnio[c][a]||0; }),
+          backgroundColor:COLORES[c], stack:"a", borderRadius:3 }; }) },
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{mode:"index", callbacks:{label:function(c){ return " "+c.dataset.label+": "+nf.format(c.raw); }}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}} } }
+    });
+    grafico("gBandejaAnioPct", {
+      type:"bar",
+      data:{ labels:anios, datasets:cc.map(function(c){
+        return { label:CATS[c], data:anios.map(function(a){ return pct(catAnio[c][a]||0, A.porAnio[a]); }),
+          backgroundColor:COLORES[c], stack:"p", borderRadius:3 }; }) },
+      options:{ plugins:{legend:{position:"bottom"}, tooltip:{mode:"index", callbacks:{label:function(c){ return " "+c.dataset.label+": "+nf1.format(c.raw)+"%"; }}}},
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, max:100, grid:REJILLA, ticks:{callback:function(v){ return v+"%"; }}} } }
+    });
+
+    // detalle de la bandeja elegida
+    $("#bandejaTitulo").textContent = "Detalle de "+CATS[catSel];
+    $("#bandejaNota").textContent = nf.format(catN[catSel])+" correos · "+fmtMB(catPeso[catSel])+" · quién los envía y desde qué dominios";
+    var lista = Object.keys(remCat[catSel]).map(function(r){ var o = remCat[catSel][r]; return { r:parseInt(r,10), n:o.n, peso:o.peso, no:o.no }; })
+      .sort(function(a,b){ return b.n-a.n; });
+    var t10 = lista.slice(0,10);
+    grafico("gBandejaTop", {
+      type:"bar",
+      data:{ labels:t10.map(function(x){ return recortar(REM[x.r][0]||REM[x.r][1], 26); }),
+        datasets:[{ data:t10.map(function(x){ return x.n; }), backgroundColor:COLORES[catSel], borderRadius:5, maxBarThickness:18 }] },
+      options:{ indexAxis:"y", plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return " "+nf.format(c.raw)+" correos"; }}}},
+        scales:{ x:{grid:REJILLA, ticks:{callback:function(v){ return nf.format(v); }}}, y:{grid:{display:false}} } }
+    });
+    var dl = Object.keys(domCat[catSel]).map(function(d){ return [d, domCat[catSel][d]]; }).sort(function(a,b){ return b[1]-a[1]; });
+    var d8 = dl.slice(0,8), dr = 0; dl.slice(8).forEach(function(x){ dr += x[1]; });
+    var ldm = d8.map(function(x){ return recortar(x[0],22); }), ddm = d8.map(function(x){ return x[1]; });
+    if (dr){ ldm.push("Otros"); ddm.push(dr); }
+    torta("gBandejaDom", ldm, ddm, PAL);
+    $("#tablaBandeja tbody").innerHTML = lista.slice(0,40).map(function(x){
+      var em = esc(REM[x.r][1]);
+      return '<tr><td><span class="nombre" title="'+esc(REM[x.r][0])+'">'+esc(REM[x.r][0])+'</span><span class="correo">'+em+'</span></td>'+
+        '<td class="num">'+nf.format(x.n)+'</td><td class="num">'+fmtMB(x.peso)+'</td>'+
+        '<td class="num">'+nf.format(x.no)+' <span style="color:var(--tenue)">('+nf1.format(pct(x.no,x.n))+'%)</span></td>'+
+        '<td><button class="btn mini" data-copiar="from:'+em.replace(/"/g,"")+'">Regla</button></td></tr>';
+    }).join("") || '<tr><td colspan="5" class="vacio">Sin correos en esta bandeja con los filtros actuales</td></tr>';
+  }
+
+  document.addEventListener("click", function(ev){
+    var b = ev.target.closest("[data-bandeja]");
+    if (b){ catSel = parseInt(b.getAttribute("data-bandeja"),10); pintarExtra(agregar()); }
+  });
+
+  function recortar(s, n){ s = s||""; return s.length>n ? s.slice(0,n-1)+"…" : s; }
+
+  /* ===================== tabla remitentes ===================== */
+  function pintarRemitentes(A){
+    var lista = Object.keys(A.porRem).map(function(r){
+      var o = A.porRem[r];
+      return { i:parseInt(r,10), n:o.n, peso:o.peso, noleido:o.noleido, min:o.min, max:o.max, nombre:(REM[r][0]||REM[r][1]) };
+    });
+    var campo = ordenRem.campo, dir = ordenRem.dir;
+    lista.sort(function(a,b){
+      if (campo === "nombre") return a.nombre.localeCompare(b.nombre)*dir;
+      return (a[campo]-b[campo])*dir;
+    });
+    lista = lista.slice(0, 60);
+
+    var maxN = 1;
+    Object.keys(A.porRem).forEach(function(r){ if (A.porRem[r].n > maxN) maxN = A.porRem[r].n; });
+    var html = lista.map(function(x){
+      var e = esc(REM[x.i][0]); var em = esc(REM[x.i][1]);
+      var ultimo = x.max ? new Date(x.max*DIA).getUTCFullYear() : "—";
+      return '<tr>'+
+        '<td><span class="nombre" title="'+e+'">'+e+'</span><span class="correo">'+em+'</span></td>'+
+        '<td class="num">'+nf.format(x.n)+'</td>'+
+        '<td class="num">'+fmtMB(x.peso)+'</td>'+
+        '<td class="num">'+(x.noleido? '<span style="color:#fbbf24">'+nf1.format(pct(x.noleido,x.n))+'%</span>' : '<span style="color:var(--tenue)">0%</span>')+'</td>'+
+        '<td class="num" style="color:var(--tenue)">'+ultimo+'</td>'+
+        '<td><div class="barrin"><i style="width:'+Math.max(2,(x.n/maxN)*100)+'%"></i></div></td>'+
+        '<td><button class="btn mini" data-copiar="from:'+em.replace(/"/g,"")+'" data-correo="'+em+'">Regla</button></td>'+
+        '</tr>';
+    }).join("");
+    $("#tablaRemitentes tbody").innerHTML = html || '<tr><td colspan="7" class="vacio">Ningún remitente con estos filtros</td></tr>';
+  }
+
+  /* ===================== plan de limpieza ===================== */
+  var REGLAS = [
+    { id:"promos", titulo:"Promociones con más de 1 año", color:"#fbbf24",
+      motivo:"Ofertas caducadas. En tu buzón casi todas son de 2024 en adelante, así que un año ya es basura segura.",
+      q:"category:promotions older_than:1y",
+      test:function(i){ return C.c[i]===2 && edad[i]>1; } },
+    { id:"noleidos", titulo:"Sin leer desde hace más de 2 años", color:"#fb7185",
+      motivo:"Si no lo abriste en dos años, no lo vas a abrir.",
+      q:"is:unread older_than:2y",
+      test:function(i){ return C.u[i]===1 && edad[i]>2; } },
+    { id:"pesados", titulo:"Adjuntos de más de 5 MB", color:"#38bdf8",
+      motivo:"La mayor concentración de espacio de todo el buzón. Los archivos importantes suelen estar ya descargados.",
+      q:"larger:5M",
+      test:function(i){ return C.p[i] >= 5*1048576; } },
+    { id:"boletines", titulo:"Boletines de hace más de 5 años", color:"#a78bfa",
+      motivo:"Información que ya caducó. Revisa antes de borrar si hay algo que quieras conservar.",
+      q:"older_than:5y (category:promotions OR category:updates)",
+      test:function(i){ return C.b[i]===1 && edad[i]>5; } },
+    { id:"viejos", titulo:"Correo de más de 10 años sin estrella", color:"#5eead4",
+      motivo:"Histórico antiguo sin marcar como favorito.",
+      q:"older_than:10y -is:starred",
+      test:function(i){ return edad[i]>10; } },
+    { id:"nunca", titulo:"Remitentes que casi nunca abriste", color:"#f472b6",
+      motivo:"Remitentes con 20 correos o más y al menos 90% sin abrir.",
+      q:"", test:null }
+  ];
+
+  var coincidenciasCache = {};
+
+  function calcularCoincidencias(id){
+    if (coincidenciasCache[id]) return coincidenciasCache[id];
+    var regla = REGLAS.filter(function(r){ return r.id===id; })[0];
+    var out = [];
+    if (!regla || !regla.test) return out;
+    for (var i=0;i<N;i++){ if (regla.test(i)) out.push(i); }
+    coincidenciasCache[id] = out;
+    return out;
+  }
+
+  function pintarReglas(){
+    // remitentes con 50+ correos y cero leídos
+    var porRem = {};
+    for (var i=0;i<N;i++){
+      var rr = C.r[i];
+      if (!porRem[rr]) porRem[rr] = { n:0, u:0, peso:0, max:0 };
+      porRem[rr].n++; porRem[rr].u += C.u[i]; porRem[rr].peso += C.p[i];
+      if (C.f[i] > porRem[rr].max) porRem[rr].max = C.f[i];
+    }
+    Object.keys(porRem).forEach(function(k){
+      porRem[k].ratio = porRem[k].n ? porRem[k].u / porRem[k].n : 0;
+    });
+    var nuncaN = 0, nuncaPeso = 0, nuncaCuantos = 0;
+    Object.keys(porRem).forEach(function(k){
+      if (porRem[k].n >= 20 && porRem[k].ratio >= 0.9){ nuncaCuantos++; nuncaN += porRem[k].n; nuncaPeso += porRem[k].peso; }
+    });
+
+    var html = REGLAS.map(function(r){
+      var idx, peso = 0, datosHtml = "";
+      if (r.test){
+        idx = calcularCoincidencias(r.id);
+        for (var z=0;z<idx.length;z++) peso += C.p[idx[z]];
+        datosHtml = '<div><span>Correos</span><b>'+nf.format(idx.length)+'</b></div>'+
+                    '<div><span>Espacio</span><b>'+fmtMB(peso)+'</b></div>';
+      } else {
+        datosHtml = '<div><span>Remitentes</span><b>'+nf.format(nuncaCuantos)+'</b></div>'+
+                    '<div><span>Correos</span><b>'+nf.format(nuncaN)+'</b></div>'+
+                    '<div><span>Espacio</span><b>'+fmtMB(nuncaPeso)+'</b></div>';
+      }
+      var botones = r.test
+        ? '<button class="btn mini" data-copiar="'+esc(r.q)+'">Copiar consulta</button>'+
+          '<a class="btn mini" target="_blank" rel="noopener" href="https://mail.google.com/mail/u/0/#search/'+encodeURIComponent(r.q)+'">Abrir en Gmail</a>'+
+          '<button class="btn mini" data-csv-regla="'+r.id+'">CSV</button>'
+        : '<button class="btn mini" data-scroll="#tablaNunca">Ver la lista</button>'+
+          '<button class="btn mini" data-copiar="is:unread older_than:5y">Copiar consulta aproximada</button>';
+      return '<div class="regla" style="--c:'+r.color+'">'+
+        '<h4>'+r.titulo+'</h4><p>'+r.motivo+'</p>'+
+        '<div class="datos">'+datosHtml+'</div>'+
+        (r.q? '<code>'+esc(r.q)+'</code>' : '')+
+        '<div class="acciones">'+botones+'</div></div>';
+    }).join("");
+    $("#reglas").innerHTML = html;
+
+    // tabla nunca abiertos
+    var nunca = Object.keys(porRem).map(function(k){ return [parseInt(k,10), porRem[k]]; })
+      .filter(function(x){ return x[1].n >= 20 && x[1].ratio >= 0.9; });
+    nunca.sort(function(a,b){
+      if (ordenNunca.campo === "nombre") return (REM[a[0]][0]||"").localeCompare(REM[b[0]][0]||"") * ordenNunca.dir;
+      return (a[1][ordenNunca.campo] - b[1][ordenNunca.campo]) * ordenNunca.dir;
+    });
+    nunca = nunca.slice(0, 40);
+    $("#tablaNunca tbody").innerHTML = nunca.map(function(x){
+      var e = esc(REM[x[0]][0]), em = esc(REM[x[0]][1]);
+      return '<tr><td><span class="nombre">'+e+'</span><span class="correo">'+em+'</span></td>'+
+        '<td class="num">'+nf.format(x[1].n)+'</td>'+
+        '<td class="num" style="color:#fb7185">'+nf1.format(x[1].ratio*100)+'%</td>'+
+        '<td class="num">'+fmtMB(x[1].peso)+'</td>'+
+        '<td class="num" style="color:var(--tenue)">'+fmtFecha(x[1].max)+'</td>'+
+        '<td><button class="btn mini" data-copiar="from:'+em+'">Regla</button></td></tr>';
+    }).join("") || '<tr><td colspan="6" class="vacio">Ningún remitente cumple el criterio</td></tr>';
+
+    // correos más pesados
+    var orden = Array.from({length:N}, function(_,i){return i;}).sort(function(a,b){ return C.p[b]-C.p[a]; }).slice(0,120);
+    $("#tablaPesados tbody").innerHTML = orden.map(function(i){
+      return '<tr><td style="color:var(--tenue);white-space:nowrap">'+fmtFecha(C.f[i])+'</td>'+
+        '<td><span class="nombre">'+esc(REM[C.r[i]][0])+'</span><span class="correo">'+esc(REM[C.r[i]][1])+'</span></td>'+
+        '<td style="color:var(--suave)">'+esc(recortar(C.s[i],70))+'</td>'+
+        '<td class="num">'+fmtMB(C.p[i])+'</td></tr>';
+    }).join("");
+  }
+
+  /* ===================== interacción ===================== */
+  function refrescar(){
+    leerFiltros();
+    aplicarFiltros();
+    var A = agregar();
+    pintarKPIs(A);
+    pintarHallazgos(A);
+    pintarGraficos(A);
+    pintarRemitentes(A);
+  }
+
+  var temporizador = null;
+  function refrescarDiferido(){
+    clearTimeout(temporizador);
+    temporizador = setTimeout(refrescar, 180);
+  }
+
+  function copiar(texto){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(texto).then(function(){ avisar("Copiado: "+texto); },
+        function(){ copiarAntiguo(texto); });
+    } else copiarAntiguo(texto);
+  }
+  function copiarAntiguo(texto){
+    var ta = document.createElement("textarea");
+    ta.value = texto; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); avisar("Copiado: "+texto); } catch(e){}
+    document.body.removeChild(ta);
+  }
+  function avisar(msg){
+    var t = document.createElement("div");
+    t.textContent = msg;
+    t.style.cssText = "position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#152030;"+
+      "border:1px solid #2a3a4d;color:#e6edf6;padding:10px 18px;border-radius:10px;font-size:12.5px;"+
+      "z-index:999;box-shadow:0 10px 30px rgba(0,0,0,.5)";
+    document.body.appendChild(t);
+    setTimeout(function(){ t.style.transition="opacity .4s"; t.style.opacity="0"; setTimeout(function(){ t.remove(); }, 420); }, 1500);
+  }
+
+  function descargar(nombre, contenido){
+    var blob = new Blob([contenido], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+
+  function csvDeIndices(indices, nombre){
+    var lineas = ["Fecha,Remitente,Email,Asunto,Tamano_bytes,Categoria,Sin_leer"];
+    for (var z=0;z<indices.length;z++){
+      var i = indices[z];
+      lineas.push([
+        fmtFecha(C.f[i]),
+        '"'+String(REM[C.r[i]][0]||"").replace(/"/g,'""')+'"',
+        REM[C.r[i]][1],
+        '"'+String(C.s[i]||"").replace(/"/g,'""')+'"',
+        C.p[i],
+        CATS[C.c[i]],
+        C.u[i] ? "si" : "no"
+      ].join(","));
+    }
+    descargar(nombre, "\uFEFF"+lineas.join("\r\n"));
+    avisar("CSV descargado: "+indices.length+" correos");
+  }
+
+  // eventos de filtros
+  ["#fTexto","#fDominio","#fCategoria","#fDesde","#fHasta","#fMes","#fPeso","#fEtiqueta"].forEach(function(sel){
+    $(sel).addEventListener("input", refrescarDiferido);
+    $(sel).addEventListener("change", refrescar);
+  });
+  $("#fNoleido").addEventListener("change", function(){ $("#tgNoleido").classList.toggle("activo", this.checked); refrescar(); });
+  $("#fBoletin").addEventListener("change", function(){ $("#tgBoletin").classList.toggle("activo", this.checked); refrescar(); });
+  $("#btnLimpiar").addEventListener("click", function(){
+    $("#fTexto").value=""; $("#fDominio").value=""; $("#fCategoria").value="";
+    $("#fDesde").value=""; $("#fHasta").value=""; $("#fMes").value=""; $("#fPeso").value="0"; $("#fEtiqueta").value="";
+    $("#fNoleido").checked=false; $("#fBoletin").checked=false;
+    $("#tgNoleido").classList.remove("activo"); $("#tgBoletin").classList.remove("activo");
+    refrescar();
+  });
+
+  // ordenar tabla remitentes
+  $$("#tablaRemitentes thead th[data-orden]").forEach(function(th){
+    th.addEventListener("click", function(){
+      var campo = th.getAttribute("data-orden");
+      if (ordenRem.campo === campo) ordenRem.dir *= -1;
+      else { ordenRem.campo = campo; ordenRem.dir = -1; }
+      pintarRemitentes(agregar());
+    });
+  });
+
+  // ordenar tabla de remitentes nunca abiertos
+  $$("#tablaNunca thead th[data-orden-nunca]").forEach(function(th){
+    th.addEventListener("click", function(){
+      var campo = th.getAttribute("data-orden-nunca");
+      if (ordenNunca.campo === campo) ordenNunca.dir *= -1;
+      else { ordenNunca.campo = campo; ordenNunca.dir = (campo === "nombre" ? 1 : -1); }
+      pintarReglas();
+    });
+  });
+
+  // pestañas
+  $$("nav.tabs button").forEach(function(b){
+    b.addEventListener("click", function(){
+      $$("nav.tabs button").forEach(function(x){ x.classList.remove("activa"); });
+      b.classList.add("activa");
+      $$(".panel").forEach(function(p){ p.classList.remove("activa"); });
+      $("#p-"+b.getAttribute("data-tab")).classList.add("activa");
+      // redibujar para que Chart.js calcule bien el tamaño
+      setTimeout(function(){ var A = agregar(); pintarGraficos(A); }, 30);
+    });
+  });
+
+  // delegación de clics (copiar / csv)
+  document.addEventListener("click", function(ev){
+    var t = ev.target.closest("[data-copiar]");
+    if (t){ copiar(t.getAttribute("data-copiar")); return; }
+    var sc = ev.target.closest("[data-scroll]");
+    if (sc){ var destino = document.querySelector(sc.getAttribute("data-scroll"));
+      if (destino) destino.scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    var c = ev.target.closest("[data-csv-regla]");
+    if (c){
+      var id = c.getAttribute("data-csv-regla");
+      csvDeIndices(calcularCoincidencias(id), "limpieza_"+id+".csv");
+    }
+  });
+
+  $("#btnCsv").addEventListener("click", function(){
+    csvDeIndices(Array.prototype.slice.call(seleccion, 0, nSel), "correos_filtrados.csv");
+  });
+
+  /* ===================== arranque ===================== */
+  $("#generado").textContent = D.generado || "—";
+  $("#cuenta").textContent = (D.cuenta ? D.cuenta + " · " : "") + nf.format(D.total) + " correos · " + fmtMB(D.peso);
+  $("#rangoFechas").textContent = fmtFecha(D.desde/DIA) + " → " + fmtFecha(D.hasta/DIA);
+
+  llenarSelects();
+  pintarReglas();
+  refrescar();
+
+  // enlace directo a una pestaña: dashboard.html#remitentes
+  var hash = (location.hash || "").replace("#","");
+  if (hash){
+    var btn = document.querySelector('nav.tabs button[data-tab="'+hash+'"]');
+    if (btn) btn.click();
+  }
+
+})();
+</script>
+</body>
+</html>
