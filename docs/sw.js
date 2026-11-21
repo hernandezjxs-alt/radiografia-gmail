@@ -2,8 +2,8 @@
  * Estrategia "red primero, cache de respaldo": asi un cambio en config.js o en el codigo
  * llega apenas hay conexion, y sin conexion se abre la ultima version guardada.
  * No toca Gmail ni el inicio de sesion de Google: esas llamadas siempre van a la red. */
-const VERSION = "radiografia-v1";
-const ESTATICOS = ["./", "index.html", "analisis.js", "cargador.js", "config.js", "chart.umd.min.js",
+const VERSION = "radiografia-v2";
+const ESTATICOS = ["./", "index.html", "app.html", "analisis.js", "cargador.js", "config.js", "chart.umd.min.js",
                    "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
