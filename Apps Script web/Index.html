@@ -298,6 +298,10 @@
          color:#b6c7d8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);line-height:1.4;text-align:left}
   #login ul.lg-chips li::before{content:"";width:6px;height:6px;border-radius:50%;background:#5eead4;flex:0 0 auto}
   #login ul.lg-chips li b{color:#fff;font-weight:600}
+  #login .lg-cuenta{margin:-6px 0 16px;font-size:12.5px;color:#9fb2c6}
+  #login .lg-cuenta b{color:#fff;font-weight:600}
+  #login .lg-cuenta a{color:#5eead4;text-decoration:none;font-weight:600;margin-left:6px;white-space:nowrap}
+  #login .lg-cuenta a:hover{text-decoration:underline}
   #login .lg-etq{margin:0 0 8px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7f95ab;font-weight:700}
   #login .lg-pastillas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
   #login .lg-pastillas button{cursor:pointer;padding:10px 4px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
@@ -456,6 +460,10 @@
   <div class="logo">✉</div>
   <h2 class="lg-titulo">Radiografía de tu Gmail</h2>
   <p class="lg-lead">Conecta tu cuenta y descubre de dónde viene tu correo, qué ocupa espacio y qué conviene limpiar.</p>
+  <div class="lg-cuenta" id="lgCuenta" hidden>
+    Se analizará la cuenta <b id="lgEmail"></b>
+    <a id="lgCambiar" target="_top" href="#">Usar otra cuenta</a>
+  </div>
   <ul class="lg-chips">
     <li>Solo cabeceras: remitente, asunto, fecha y tamaño</li>
     <li><b>No lee el contenido</b> de tus correos</li>
@@ -2345,6 +2353,19 @@ window.arrancarDashboard = function(){
 
   medir();
   if (reducido){ dibujar(); } else { bucle(); }
+})();
+(function () {
+  // cuenta activa y enlace para cambiarla (selector de cuentas de Google)
+  var box = document.getElementById("lgCuenta");
+  if (box && window.google && google.script && google.script.run) {
+    google.script.run.withSuccessHandler(function (r) {
+      if (!r) return;
+      if (r.email) document.getElementById("lgEmail").textContent = r.email;
+      document.getElementById("lgCambiar").href =
+        "https://accounts.google.com/AccountChooser?continue=" + encodeURIComponent(r.url || "");
+      box.hidden = false;
+    }).withFailureHandler(function () { /* sin cuenta visible: no estorba */ }).quien();
+  }
 })();
 (function () {
   var cont = document.getElementById("lgPastillas"), sel = document.getElementById("loginLimite");

@@ -308,3 +308,9 @@ function papeleraRemitente(email) {
   }
   return { movidos: ids.length };
 }
+
+/** Cuenta con la que se usa la app y direccion de la app (para el enlace "Usar otra cuenta"). */
+function quien() {
+  var p = pedir_('/profile?fields=emailAddress');
+  return { email: p.emailAddress, url: ScriptApp.getService().getUrl() };
+}
