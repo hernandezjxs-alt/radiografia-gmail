@@ -185,6 +185,16 @@
     .aurora i{animation:none}
     .flotantes .ic{animation:none;translate:0 0}
   }
+
+  /* pantallas altas (celular en vertical): las manchas de color se solapaban y lavaban el fondo.
+     Aqui son circulos mas pequenos y menos intensos, y el fondo se mantiene oscuro. */
+  @media (max-aspect-ratio: 4/5){
+    /* la capa .aurora mide 150% de la pantalla y empieza en -25%: por eso el +25 al calcular cada centro */
+    .aurora{opacity:.9}
+    .aurora i:nth-child(1){width:120vw;height:120vw;left:calc(15vw + 25vw - 60vw);top:calc(14vh + 25vh - 60vw)}
+    .aurora i:nth-child(2){width:110vw;height:110vw;left:calc(96vw + 25vw - 55vw);top:calc(46vh + 25vh - 55vw)}
+    .aurora i:nth-child(3){width:120vw;height:120vw;left:calc(30vw + 25vw - 60vw);top:calc(96vh + 25vh - 60vw)}
+  }
 </style>
 </head>
 <body>
